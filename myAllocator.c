@@ -56,7 +56,7 @@
 const size_t DEFAULT_BRKSIZE = 0x100000;	/* 1M */
 
 /* create a block, mark it as free */
-BlockPrefix_t *makeFreeBlock(void *addr, size_t size) { 
+BlockPrefix_t *makeFreeBlock(void *addr, size_t size) {
   BlockPrefix_t *p = addr;
   void *limitAddr = addr + size;
   BlockSuffix_t *s = limitAddr - align8(sizeof(BlockSuffix_t));
@@ -253,6 +253,49 @@ void freeRegion(void *r) {
 */
 void *resizeRegion(void *r, size_t newSize) {
   int oldSize;
+  size_t aSize = align8(newSize); 
+  
+  if (r != (void *)0)		/* old region existed */
+    oldSize = computeUsableSpace(regionToPrefix(r));
+  else
+    oldSize = 0;		/* non-existant regions have size 0 */
+  if (oldSize >= newSize)	/* old region is big enough */
+    return r;
+  else {			/* resize regions */
+
+    BlockPrefix_t *nextBlockPre = getNextPrefix(regionToPrefix(r));
+    BlockSuffix_t *nextBlockSuf = nextBlockPre->suffix;
+
+    if(nextBlockPre->allocated){/* Next Block is not free */
+      
+    }else{                      /* Next block is free */
+
+      int totalSpaceInBlocks = computeUsableSpace(regionToPrefix(r))+computeUsableSpace(nextBlockPre);
+
+      if(aSize <= totalSpaceInBlocks){ /* Available space in blocks can accomodate new size */
+
+	BlockPrefix_t *p = regionToPrefix(r);      /* Adjust address of new suffix 's'*/
+        void *limitAddr = r + aSize;
+	BlockSuffix_t *s = limitAddr;              
+
+	BlockPrefix_t *nextBlockPreNew = (void *)s+align8(sizeof(BlockPrefix_t));  /* Adjust address of new prefix of next block */
+	
+	p->suffix = s;         /* Adjust current blocks prefix and suffix */
+	s->prefix = p;
+	
+	nextBlockPreNew->suffix = nextBlockSuf;        /* Adjust next blocks prefix and suffix */
+	nextBlockPreNew->allocated = 0;
+	nextBlockSuf->prefix = nextBlockPreNew;
+      }
+    }
+    
+    return (void *)r;
+  }
+}
+
+void *resizeRegionOriginal(void *r, size_t newSize) {
+  int oldSize;
+  size_t aSize = align8(newSize);
   if (r != (void *)0)		/* old region existed */
     oldSize = computeUsableSpace(regionToPrefix(r));
   else
@@ -263,10 +306,9 @@ void *resizeRegion(void *r, size_t newSize) {
     char *o = (char *)r;	/* treat both regions as char* */
     char *n = (char *)firstFitAllocRegion(newSize); 
     int i;
-    for (i = 0; i < oldSize; i++) /* copy byte-by-byte, should use memcpy */
+    for (i = 0; i < oldSize; i++) /* copy byte-by-byte, should use memcpy */ 
       n[i] = o[i];
     freeRegion(o);		/* free old region */
-    return (void *)n;
+    return (void *)r;
   }
 }
-

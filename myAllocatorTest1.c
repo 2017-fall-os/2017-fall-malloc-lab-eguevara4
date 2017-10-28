@@ -19,16 +19,22 @@ void getutime(struct timeval *t)
 
 int main() 
 {
-  void *p1, *p2, *p3;
+  void *p1, *p2, *p3, *p4;
   arenaCheck();
   p1 = firstFitAllocRegion(254);
   arenaCheck();
   p2 = firstFitAllocRegion(25400);
   arenaCheck();
   p3 = firstFitAllocRegion(254);
-  printf("%8zx %8zx %8zx\n", p1, p2, p3);
+  arenaCheck();
+  p4 = firstFitAllocRegion(13);
+  arenaCheck();
+  p4 = resizeRegion(p4,500);
+  printf("%8zx %8zx %8zx %8zx\n", p1, p2, p3, p4);
   arenaCheck();
   freeRegion(p2);
+  arenaCheck();
+  freeRegion(p4);
   arenaCheck();
   freeRegion(p3);
   arenaCheck();
