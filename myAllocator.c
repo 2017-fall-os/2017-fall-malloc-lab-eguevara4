@@ -191,6 +191,32 @@ BlockPrefix_t *findFirstFit(size_t s) {	/* find first block with usable space > 
     return growArena(s);
 }
 
+BlockPrefix_t *findBestFit(size_t s) {	/* find best fit block */
+    BlockPrefix_t *p = arenaBegin;
+    BlockPrefix_t *bestFit = arenaBegin;
+    int bestDiff = -1;
+    while (p) {
+      if (!p->allocated && computeUsableSpace(p) >= s){ 
+	    int diff = computeUsableSpace(p) - s;
+	    if(bestDiff == -1){
+	      bestDiff = diff;
+	      bestFit = p;
+	    }
+	    if(diff < bestDiff){  /* current difference is smaller than the last best fit */
+	      bestDiff = diff;
+	      bestFit = p;
+	    }
+      }
+      p = getNextPrefix(p);
+    }
+    
+    if(bestFit){
+      return bestFit;
+    }
+      
+    return growArena(s);
+}
+
 /* conversion between blocks & regions (offset of prefixSize */
 
 BlockPrefix_t *regionToPrefix(void *r) {
@@ -230,7 +256,27 @@ void *firstFitAllocRegion(size_t s) {
   } else {			/* failed */
     return (void *)0;
   }
-  
+}
+
+void *bestFitAllocRegion(size_t s) {
+  size_t asize = align8(s);
+  BlockPrefix_t *p;
+  if (arenaBegin == 0)		/* arena uninitialized? */
+    initializeArena();
+  p = findBestFit(s);		/* find a block */
+  if (p) {			/* found a block */
+    size_t availSize = computeUsableSpace(p);
+    if (availSize >= (asize + prefixSize + suffixSize + 8)) { /* split block? */
+      void *freeSliverStart = (void *)p + prefixSize + suffixSize + asize;
+      void *freeSliverEnd = computeNextPrefixAddr(p);
+      makeFreeBlock(freeSliverStart, freeSliverEnd - freeSliverStart);
+      makeFreeBlock(p, freeSliverStart - (void *)p); /* piece being allocated */
+    }
+    p->allocated = 1;		/* mark as allocated */
+    return prefixToRegion(p);	/* convert to *region */
+  } else {			/* failed */
+    return (void *)0;
+  }
 }
 
 void freeRegion(void *r) {
@@ -251,6 +297,8 @@ void freeRegion(void *r) {
    TODO: if the successor 's' to r's block is free, and there is sufficient space
    in r + s, then just adjust sizes of r & s.
 */
+
+/* resizeRegion is the new implementation resizeRegionOriginal is the original implementation */ 
 void *resizeRegion(void *r, size_t newSize) {
   int oldSize;
   size_t aSize = align8(newSize); 

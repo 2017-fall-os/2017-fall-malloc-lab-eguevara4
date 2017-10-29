@@ -19,26 +19,35 @@ void getutime(struct timeval *t)
 
 int main() 
 {
-  void *p1, *p2, *p3, *p4;
-  arenaCheck();
-  p1 = firstFitAllocRegion(254);
-  arenaCheck();
-  p2 = firstFitAllocRegion(25400);
-  arenaCheck();
-  p3 = firstFitAllocRegion(254);
-  arenaCheck();
-  p4 = firstFitAllocRegion(13);
-  arenaCheck();
-  p4 = resizeRegion(p4,500);
-  printf("%8zx %8zx %8zx %8zx\n", p1, p2, p3, p4);
+  void *p1, *p2, *p3, *p4, *p5, *p6, *p7, *p8;
+  
+  p1 = bestFitAllocRegion(254);
+  p2 = bestFitAllocRegion(25400);
+  p3 = bestFitAllocRegion(254);
+  p3 = resizeRegion(p3,400);
+  p4 = bestFitAllocRegion(13);
+  p4 = resizeRegion(p4,500); /* resize p4 from 16 to 504 */
+  p5 = bestFitAllocRegion(254);
+  //printf("%8zx %8zx %8zx %8zx\n", p1, p2, p3, p4);
   arenaCheck();
   freeRegion(p2);
   arenaCheck();
   freeRegion(p4);
   arenaCheck();
+  p6 = bestFitAllocRegion(300);  /* is fit in available region left by free p4 */
+  p7 = bestFitAllocRegion(100);  
+  p8 = bestFitAllocRegion(2000); /* is fit in available region left by free p2 */
+  arenaCheck();
   freeRegion(p3);
   arenaCheck();
   freeRegion(p1);
+  arenaCheck();
+  freeRegion(p5);
+  arenaCheck();
+  freeRegion(p6);
+  freeRegion(p7);
+  arenaCheck();
+  freeRegion(p8);
   arenaCheck();
   {				/* measure time for 10000 mallocs */
     struct timeval t1, t2;
