@@ -195,10 +195,10 @@ BlockPrefix_t *findBestFit(size_t s) {	/* find best fit block */
     BlockPrefix_t *p = arenaBegin;
     BlockPrefix_t *bestFit = arenaBegin;
     int bestDiff = -1;
-    while (p) {
+    while (p) {              /* Go through list */ 
       if (!p->allocated && computeUsableSpace(p) >= s){ 
 	    int diff = computeUsableSpace(p) - s;
-	    if(bestDiff == -1){
+	    if(bestDiff == -1){  /* No other free spaces have been found only this one so set it to smallest difference a.k.a. best difference */
 	      bestDiff = diff;
 	      bestFit = p;
 	    }
@@ -210,7 +210,7 @@ BlockPrefix_t *findBestFit(size_t s) {	/* find best fit block */
       p = getNextPrefix(p);
     }
     
-    if(bestFit){
+    if(bestFit){      /* return the one with the smallest difference */
       return bestFit;
     }
       
